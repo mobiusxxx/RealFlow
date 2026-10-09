@@ -15,12 +15,12 @@ import imageio
 import time
 import cv2
 
-
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 @torch.no_grad()
 def render_local(flow_net, dataset, save_path, iters=24):
 
     #load DPT depth model, using pretrain DPT model
-    depth_model_path = "DPT/model/dpt_large-midas-2f21e586.pt"
+    depth_model_path = "F:/weights/dpt/dpt_large-midas-2f21e586.pt"
     DPT = DPTDepthModel(
         path=depth_model_path,
         backbone="vitl16_384",
@@ -37,7 +37,7 @@ def render_local(flow_net, dataset, save_path, iters=24):
 
 
     for val_id in tqdm(range(0, len(dataset))):
-        image1, image2, _,_   = dataset[val_id]
+        image1, image2 = dataset[val_id]
         image1 = image1[None].cuda()
         image2 = image2[None].cuda()
 
@@ -105,12 +105,12 @@ def render_local(flow_net, dataset, save_path, iters=24):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # RAFT parameteqqrs
-    parser.add_argument('--model', help="restore checkpoint")
+    parser.add_argument('--model', default="F:/weights/RAFT/raft-things.pth",help="restore checkpoint")
     parser.add_argument('--small', action='store_true', help='use small model')
     parser.add_argument('--mixed_precision', action='store_true', help='use mixed precision')
     parser.add_argument('--save_location', help="save the results in local or oss")
-    parser.add_argument('--save_path', help=" local path to save the result")
-    parser.add_argument('--iter', help=" kitti 24, sintel 32")
+    parser.add_argument('--save_path', default='F:/datasets/water_datasets/create_data/val',help=" local path to save the result")
+    parser.add_argument('--iter', default=24,help=" kitti 24, sintel 32")
     args = parser.parse_args()
 
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     model.eval()
 
     # choose your dataset here
-    dataset = datasets.KITTI()
+    dataset = datasets.SequentialImagesDataset()
 
     with torch.no_grad():
         render_local(model, dataset, args.save_path, iters= int(args.iter))

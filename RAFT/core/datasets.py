@@ -66,19 +66,11 @@ class FlowDataset(data.Dataset):
         else:
             index = index % len(self.image_list)
             valid = None
-            if self.sparse:
-                flow, valid = frame_utils.readFlowKITTI(self.flow_list[index])
-            else:
-                flow = frame_utils.read_gen(self.flow_list[index])
-            if self.depth == True:
-                depth = frame_utils.depth_read(self.depth_list[index])
-                depth = np.array(depth).astype(np.float32)
-                depth = torch.from_numpy(depth).unsqueeze(0).float()
+
 
             img1 = frame_utils.read_gen(self.image_list[index][0])
             img2 = frame_utils.read_gen(self.image_list[index][1])
 
-            flow = np.array(flow).astype(np.float32)
             img1 = np.array(img1).astype(np.uint8)
             img2 = np.array(img2).astype(np.uint8)
 
@@ -92,20 +84,16 @@ class FlowDataset(data.Dataset):
 
         if self.augmentor is not None:
             if self.sparse:
-                img1, img2, flow, valid = self.augmentor(img1, img2, flow, valid)
+                img1, img2, flow, valid = self.augmentor(img1, img2,valid)
             else:
-                img1, img2, flow = self.augmentor(img1, img2, flow)
+                img1, img2= self.augmentor(img1, img2)
 
         img1 = torch.from_numpy(img1).permute(2, 0, 1).float()
         img2 = torch.from_numpy(img2).permute(2, 0, 1).float()
-        flow = torch.from_numpy(flow).permute(2, 0, 1).float()
 
-        if valid is not None:
-            valid = torch.from_numpy(valid)
-        else:
-            valid = (flow[0].abs() < 1000) & (flow[1].abs() < 1000)
 
-        return img1, img2, flow, valid.float()
+
+        return img1, img2
 
     def __rmul__(self, v):
         self.flow_list = v * self.flow_list
@@ -197,6 +185,13 @@ class KITTI(FlowDataset):
         if split == 'training':
             self.flow_list = sorted(glob(osp.join(root, 'flow_occ/*_10.png')))
 
+class SequentialImagesDataset(FlowDataset):
+    def __init__(self, aug_params=None, root='test_data/val_image'):
+        super(SequentialImagesDataset, self).__init__(aug_params)
+
+        images = sorted(glob(osp.join(root, '*.jpg')))
+        for i in range(len(images) - 1):
+            self.image_list += [[images[i], images[i + 1]]]
 
 class HD1K(FlowDataset):
     def __init__(self, aug_params=None, root='datasets/HD1k'):
@@ -215,6 +210,7 @@ class HD1K(FlowDataset):
                 self.image_list += [[images[i], images[i + 1]]]
 
             seq_ix += 1
+
 
 
 def fetch_dataloader(args, TRAIN_DS='C+T+K/S'):

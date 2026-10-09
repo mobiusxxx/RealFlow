@@ -111,13 +111,13 @@ class FlowAugmentor:
     def __call__(self, img1, img2, flow):
         img1, img2 = self.color_transform(img1, img2)
         img1, img2 = self.eraser_transform(img1, img2)
-        img1, img2, flow = self.spatial_transform(img1, img2, flow)
+
 
         img1 = np.ascontiguousarray(img1)
         img2 = np.ascontiguousarray(img2)
-        flow = np.ascontiguousarray(flow)
 
-        return img1, img2, flow
+
+        return img1, img2
 
 class SparseFlowAugmentor:
     def __init__(self, crop_size, min_scale=-0.2, max_scale=0.5, do_flip=False):
